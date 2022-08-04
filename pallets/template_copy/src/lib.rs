@@ -36,7 +36,7 @@ pub mod pallet {
 	#[pallet::getter(fn something)]
 	// Learn more about declaring storage items:
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	pub type AdditionValue<T> = StorageValue<_, i32>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -46,6 +46,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
+		YesTheNumberHasBeenAdded(i32),
 	}
 
 	// Errors inform users that something went wrong.
@@ -55,6 +56,8 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		Num1CantBeGreaterThan50,
+		Num2CantBeGreaterThan50,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -62,6 +65,23 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		// custom function
+		#[pallet::weight(10_000)]
+		pub fn my_fn(origin: OriginFor<T>, num1: i32, num2: i32) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+
+			ensure!(num1 > 50, <Error<T>>::Num1CantBeGreaterThan50);
+			ensure!(num2 > 50, <Error<T>>::Num2CantBeGreaterThan50);
+
+			let addition = num1 + num2;
+
+			AdditionValue::<T>::put(addition);
+
+			Self::deposit_event(Event::YesTheNumberHasBeenAdded(addition));
+			Ok(())
+		}
+
+		/*
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -79,7 +99,9 @@ pub mod pallet {
 			// Return a successful DispatchResultWithPostInfo
 			Ok(())
 		}
+		*/
 
+		/*
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
@@ -98,5 +120,6 @@ pub mod pallet {
 				},
 			}
 		}
+		*/
 	}
 }
