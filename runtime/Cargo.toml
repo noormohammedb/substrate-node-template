@@ -48,6 +48,9 @@ frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "h
 frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26", optional = true }
 hex-literal = { version = "0.3.4", optional = true }
 
+# custom remote pallet
+pallet-nicks = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
+
 # Local Dependencies
 pallet-template-change = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
 pallet-template-copy = { version = "4.0.0-dev", default-features = false, path = "../pallets/template_copy" }
@@ -73,6 +76,7 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-nicks/std",
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-consensus-aura/std",

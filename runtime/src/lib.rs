@@ -47,6 +47,8 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_template_change;
 pub use pallet_template_copy;
 
+pub use pallet_nicks;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -268,8 +270,24 @@ impl pallet_sudo::Config for Runtime {
 // 	type Event = Event;
 // }
 
-impl pallet_template_copy::Config for Runtime {
+// impl pallet_template_copy::Config for Runtime {
+// 	type Event = Event;
+// }
+
+impl pallet_nicks::Config for Runtime {
+	type Currency = Balances;
+	type ReservationFee = ConstU128<100>;
+	type Slashed = ();
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type MinLength = ConstU32<8>;
+	type MaxLength = ConstU32<32>;
 	type Event = Event;
+	// type Event = Event;
+	// type Currency: ReservableCurrency<Self::AccountId>;
+	// type ReservationFee: Get<
+	// 	<<Self as Config>::Currency as Currency<<Self as Config>::AccountId>>::Balance,
+	// >;
+	// type Slashed = ;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -289,7 +307,8 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		// TemplateModule: pallet_template_change,
-		TemplateModule: pallet_template_copy,
+		// TemplateModule: pallet_template_copy,
+		Nicks : pallet_nicks
 
 	}
 );
