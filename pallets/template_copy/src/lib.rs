@@ -68,7 +68,7 @@ pub mod pallet {
 		// custom function
 		#[pallet::weight(10_000)]
 		pub fn my_fn(origin: OriginFor<T>, num1: i32, num2: i32) -> DispatchResult {
-			let signer = ensure_signed(origin)?;
+			let _signer = ensure_signed(origin)?;
 
 			ensure!(num1 > 50, <Error<T>>::Num1CantBeGreaterThan50);
 			ensure!(num2 > 50, <Error<T>>::Num2CantBeGreaterThan50);
