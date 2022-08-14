@@ -12,14 +12,24 @@
   ],
   "forwardPorts": [
     3000,
-    9944
+    9944,
+    9933,
+    9615,
+    30333
   ],
-  "onCreateCommand": ["cargo build", "cargo check"],
+  "onCreateCommand": [
+    "cargo build --timings",
+    "cargo check --timings"
+  ],
   "postStartCommand": "./target/debug/node-template --dev --ws-external",
   "menuActions": [
-    {"id": "polkadotjs",
-     "label": "Open PolkadotJS Apps",
-     "type": "external-preview",
-     "args": ["https://polkadot.js.org/apps/?rpc=wss%3A%2F%2F/$HOST/wss"]}
+    {
+      "id": "polkadotjs",
+      "label": "Open PolkadotJS Apps",
+      "type": "external-preview",
+      "args": [
+        "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2F/$HOST/wss"
+      ]
+    }
   ]
 }
