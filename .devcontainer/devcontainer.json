@@ -6,7 +6,10 @@
     "lldb.executable": "/usr/bin/lldb"
   },
   "extensions": [
-    "rust-lang.rust",
+    "rust-lang.rust-analyzer",
+    "ms-vscode.cpptools",
+    "ms-vscode.cpptools-extension-pack",
+    "serayuzgur.crates",
     "bungcip.better-toml",
     "vadimcn.vscode-lldb"
   ],
