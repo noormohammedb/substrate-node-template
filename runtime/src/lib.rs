@@ -279,9 +279,9 @@ impl pallet_sudo::Config for Runtime {
 
 // Configure the pallet-template in pallets/template.
 
-// impl pallet_template_change::Config for Runtime {
-// 	type Event = Event;
-// }
+impl pallet_template_change::Config for Runtime {
+	type Event = Event;
+}
 
 // impl pallet_template_copy::Config for Runtime {
 // 	type Event = Event;
@@ -302,9 +302,10 @@ parameter_types! {
 	pub const DepositPerByte: Balance = deposit(0,1);
 	pub const DeletionQueueDepth: u32 =128;
 	pub DeletionWeightLimit:Weight = AVERAGE_ON_INITIALIZE_RATIO * BlockWeights::get().max_block;
-  pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
+  // pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
 }
 
+/*
 impl pallet_contracts::Config for Runtime {
 	type Time = Timestamp;
 	type Randomness = RandomnessCollectiveFlip;
@@ -327,6 +328,7 @@ impl pallet_contracts::Config for Runtime {
 	type RelaxedMaxCodeLen = ConstU32<{ 512 * 1024 }>;
 	type MaxStorageKeyLen = ConstU32<{ 512 * 1024 }>;
 }
+*/
 
 const CONTRACTS_DEBUG_OUTPUT: bool = true;
 
@@ -349,7 +351,8 @@ construct_runtime!(
 		// TemplateModule: pallet_template_change,
 		// TemplateModule: pallet_template_copy,
 		// Nicks : pallet_nicks
-		Contracts: pallet_contracts,
+		file: pallet_template_change,
+		// Contracts: pallet_contracts,
 
 	}
 );
@@ -596,6 +599,7 @@ impl_runtime_apis! {
 			Executive::execute_block_no_check(block)
 		}
 	}
+	/*
 impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash>
  for Runtime
  {
@@ -637,4 +641,6 @@ impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, B
 	 Contracts::get_storage(address, key)
 	 }
 	}
+
+	 */
 }

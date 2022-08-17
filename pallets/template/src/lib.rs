@@ -44,6 +44,23 @@ pub mod pallet {
 
 			Claims::<T>::insert(claim, (&sender, current_block));
 
+			Self::deposit_event(Event::ClaimCreated { who: sender, claim });
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn revoke_claim(origin: OriginFor<T>, claim: T::Hash) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			let (owner, claim_block) = Claims::<T>::get(&claim).ok_or(Error::<T>::NoSuchClaim)?;
+
+			ensure!(sender == owner, Error::<T>::NotClaimOwner);
+
+			Claims::<T>::remove(&claim);
+
+			Self::deposit_event(Event::ClaimRevoked { who: sender, claim });
+
 			Ok(())
 		}
 	}
