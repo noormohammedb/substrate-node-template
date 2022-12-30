@@ -95,7 +95,24 @@ pub mod pallet {
 
 	// Your Pallet's callable functions.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		/// Create a new unique kitty.
+		///
+		/// The actual kitty creation is done in the `mint()` function.
+		#[pallet::weight(0)]
+		pub fn create_kitty(origin: OriginFor<T>) -> DispatchResult {
+			// Make sure the called is from a signed origin
+			let sender = ensure_signed(origin)?;
+
+			// Generate unique DNA and Dender using a helper function
+			let (kitty_gen_dna, gender) = Self::gen_dna();
+
+			// Write new kitty to storage by colling helper function
+			Self::mint(&sender, kitty_gen_dna, gender)?;
+
+			Ok(())
+		}
+	}
 
 	// Your Pallet's internal functions.
 	impl<T: Config> Pallet<T> {
@@ -122,6 +139,36 @@ pub mod pallet {
 			} else {
 				(hash, Gender::Female)
 			}
+		}
+
+		// Helper to mint a kitty
+		pub fn mint(
+			owner: &T::AccountId,
+			dna: [u8; 16],
+			gender: Gender,
+		) -> Result<[u8; 16], DispatchError> {
+			let kitty = Kitty::<T> { dna, price: None, gender, owner: owner.clone() };
+
+			// Check if the kitty does not already exist in our storage map
+			ensure!(!Kitties::<T>::contains_key(&kitty.dna), Error::<T>::DuplicateKitty);
+
+			// Performs this operation first as it may fail
+			let count = CountForKitties::<T>::get();
+			let new_count = count.checked_add(1).ok_or(Error::<T>::Overflow)?;
+
+			// Append kitty to Kitties Owned
+			KittiesOwned::<T>::try_append(&owner, kitty.dna)
+				.map_err(|_| Error::<T>::TooManyOwned)?;
+
+			// Write new kitty to storage
+			Kitties::<T>::insert(kitty.dna, kitty);
+			CountForKitties::<T>::put(new_count);
+
+			// Deposit our "Created" event
+			Self::deposit_event(Event::Created { kitti: dna, owner: owner.clone() });
+
+			// Return the DNA of th enew kitty if this succeeds
+			Ok(dna)
 		}
 	}
 }
