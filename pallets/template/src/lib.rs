@@ -80,6 +80,8 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// A new kitty was successfully created.
 		Created { kitti: [u8; 16], owner: T::AccountId },
+		/// A kitty was successfully transferred.
+		Transferred { from: T::AccountId, to: T::AccountId, kitty: [u8; 16] },
 	}
 
 	// Your Pallet's error messages.
@@ -91,6 +93,13 @@ pub mod pallet {
 		DuplicateKitty,
 		/// An overflow has occurred!
 		Overflow,
+
+		/// This kitty does not exist!
+		NoKitty,
+		/// You are not the owner of this kitty.
+		NotOwner,
+		/// Trying to transfer or buy a kitty from oneself.
+		TransferToSelf,
 	}
 
 	// Your Pallet's callable functions.
@@ -102,6 +111,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn create_kitty(origin: OriginFor<T>) -> DispatchResult {
 			// Make sure the called is from a signed origin
+			// let sender = ensure_signed(origin).map_err(|_| "Bad origin").unwrap();
 			let sender = ensure_signed(origin)?;
 
 			// Generate unique DNA and Dender using a helper function
@@ -169,6 +179,40 @@ pub mod pallet {
 
 			// Return the DNA of th enew kitty if this succeeds
 			Ok(dna)
+		}
+
+		// Update storage to transfer kitty
+		pub fn do_transfer(kitty_id: [u8; 16], to: T::AccountId) -> DispatchResult {
+			// Get the kitty
+			let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+			let from = kitty.owner;
+
+			ensure!(from != to, Error::<T>::TransferToSelf);
+			let mut from_owned = KittiesOwned::<T>::get(&from);
+
+			// Remove kitty from list of owned kitties
+			if let Some(kitty_index) = from_owned.iter().position(|&id| id == kitty_id) {
+				from_owned.swap_remove(kitty_index);
+			} else {
+				return Err(Error::<T>::NoKitty.into());
+			}
+
+			// Add kitty to the list of owned kitties.
+			let mut to_owned = KittiesOwned::<T>::get(&to);
+			to_owned.try_push(kitty_id).map_err(|_| Error::<T>::TooManyOwned)?;
+
+			// Transfer succeeded, update the kitty owner and reset the price to `None`.
+			kitty.owner = to.clone();
+			kitty.price = None;
+
+			// Write updates to storage
+			Kitties::<T>::insert(&kitty_id, kitty);
+			KittiesOwned::<T>::insert(&to, to_owned);
+			KittiesOwned::<T>::insert(&from, from_owned);
+
+			Self::deposit_event(Event::Transferred { from, to, kitty: kitty_id });
+
+			Ok(())
 		}
 	}
 }
