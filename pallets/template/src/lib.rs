@@ -74,11 +74,28 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A new kitty was successfully created.
-		Created { kitti: [u8; 16], owner: T::AccountId },
+		Created {
+			kitti: [u8; 16],
+			owner: T::AccountId,
+		},
 		/// A kitty was successfully transferred.
-		Transferred { from: T::AccountId, to: T::AccountId, kitty: [u8; 16] },
+		Transferred {
+			from: T::AccountId,
+			to: T::AccountId,
+			kitty: [u8; 16],
+		},
 		/// The price of a kitty was successfully set.
-		PriceSet { kitty: [u8; 16], price: Option<BalanceOf<T>> },
+		PriceSet {
+			kitty: [u8; 16],
+			price: Option<BalanceOf<T>>,
+		},
+
+		Sold {
+			seller: T::AccountId,
+			buyer: T::AccountId,
+			kitty: [u8; 16],
+			price: BalanceOf<T>,
+		},
 	}
 
 	// Your Pallet's error messages.
@@ -97,6 +114,9 @@ pub mod pallet {
 		NotOwner,
 		/// Trying to transfer or buy a kitty from oneself.
 		TransferToSelf,
+
+		BidPriceTooLow,
+		NotForSale,
 	}
 
 	// Your Pallet's callable functions.
@@ -160,6 +180,26 @@ pub mod pallet {
 
 			// Deposit a "PriceSet" event
 			Self::deposit_event(Event::PriceSet { kitty: kitty_id, price: new_price });
+
+			Ok(())
+		}
+		/// Buy a saleable kitty. The bid price provided from the buyer has to be equal or higher
+		/// than the ask price from the seller.
+		///
+		/// This will reset the asking price of the kitty, marking it not for sale.
+		/// Marking this method `transactional` so when an error is returned, we ensure no storage
+		/// is changed.
+		#[pallet::weight(0)]
+		pub fn buy_kitty(
+			origin: OriginFor<T>,
+			kitty_id: [u8; 16],
+			bid_price: BalanceOf<T>,
+		) -> DispatchResult {
+			// Make sure the caller is from a signed origin
+			let buyer = ensure_signed(origin)?;
+
+			// Transfer the kitty from the seller to the buyer
+			Self::do_buy_kitty(kitty_id, buyer, bid_price);
 
 			Ok(())
 		}
@@ -241,6 +281,65 @@ pub mod pallet {
 			// Add kitty to the list of owned kitties.
 			let mut to_owned = KittiesOwned::<T>::get(&to);
 			to_owned.try_push(kitty_id).map_err(|_| Error::<T>::TooManyOwned)?;
+
+			// Transfer succeeded, update the kitty owner and reset the price to `None`.
+			kitty.owner = to.clone();
+			kitty.price = None;
+
+			// Write updates to storage
+			Kitties::<T>::insert(&kitty_id, kitty);
+			KittiesOwned::<T>::insert(&to, to_owned);
+			KittiesOwned::<T>::insert(&from, from_owned);
+
+			Self::deposit_event(Event::Transferred { from, to, kitty: kitty_id });
+
+			Ok(())
+		}
+
+		// A helper function for purchasing a kitty
+		pub fn do_buy_kitty(
+			kitty_id: [u8; 16],
+			to: T::AccountId,
+			bid_price: BalanceOf<T>,
+		) -> DispatchResult {
+			// Get the kitty
+			let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+			let from = kitty.owner;
+
+			ensure!(from != to, Error::<T>::TransferToSelf);
+			let mut from_owned = KittiesOwned::<T>::get(&from);
+
+			// Remove kitty from list of owned kitties.
+			if let Some(ind) = from_owned.iter().position(|&id| id == kitty_id) {
+				from_owned.swap_remove(ind);
+			} else {
+				return Err(Error::<T>::NoKitty.into())
+			}
+
+			// Add kitty to the list of owned kitties.
+			let mut to_owned = KittiesOwned::<T>::get(&to);
+			to_owned.try_push(kitty_id).map_err(|_| Error::<T>::TooManyOwned)?;
+
+			// Mutating state here via a balance transfer, so nothing is allowed to fail after this.
+			if let Some(price) = kitty.price {
+				ensure!(bid_price >= price, Error::<T>::BidPriceTooLow);
+				// Transfer the amount from buyer to seller
+				T::Currency::transfer(
+					&to,
+					&from,
+					price,
+					frame_support::traits::ExistenceRequirement::KeepAlive,
+				)?;
+				// Deposit sold event
+				Self::deposit_event(Event::Sold {
+					seller: from.clone(),
+					buyer: to.clone(),
+					kitty: kitty_id,
+					price,
+				});
+			} else {
+				return Err(Error::<T>::NotForSale.into())
+			}
 
 			// Transfer succeeded, update the kitty owner and reset the price to `None`.
 			kitty.owner = to.clone();
