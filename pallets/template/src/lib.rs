@@ -1,13 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{
-		pallet_prelude::{ValueQuery, *},
-		BoundedVec, Twox64Concat,
-	};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
 	use frame_support::traits::{Currency, Randomness};
@@ -119,7 +114,24 @@ pub mod pallet {
 
 			// Write new kitty to storage by colling helper function
 			Self::mint(&sender, kitty_gen_dna, gender)?;
+			Ok(())
+		}
 
+		/// Directly transfer a kitty to another recipient.
+		///
+		/// Any account that holds a kitty can send it to another Account. This will reset the
+		/// asking price of the kitty, marking it not for sale.
+		#[pallet::weight(0)]
+		pub fn transfer(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			kitty_id: [u8; 16],
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			let kitti = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+			ensure!(kitti.owner == sender, Error::<T>::NotOwner);
+
+			Self::do_transfer(kitty_id, to);
 			Ok(())
 		}
 	}
