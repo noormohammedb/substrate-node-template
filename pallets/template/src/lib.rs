@@ -77,6 +77,8 @@ pub mod pallet {
 		Created { kitti: [u8; 16], owner: T::AccountId },
 		/// A kitty was successfully transferred.
 		Transferred { from: T::AccountId, to: T::AccountId, kitty: [u8; 16] },
+		/// The price of a kitty was successfully set.
+		PriceSet { kitty: [u8; 16], price: Option<BalanceOf<T>> },
 	}
 
 	// Your Pallet's error messages.
@@ -132,6 +134,33 @@ pub mod pallet {
 			ensure!(kitti.owner == sender, Error::<T>::NotOwner);
 
 			Self::do_transfer(kitty_id, to);
+			Ok(())
+		}
+
+		/// Set the price of a kitty.
+		///
+		/// Update kitty price and updates the storage.
+		#[pallet::weight(0)]
+		pub fn set_price(
+			origin: OriginFor<T>,
+			kitty_id: [u8; 16],
+			new_price: Option<BalanceOf<T>>,
+		) -> DispatchResult {
+			// Make sure the caller is from a signed origin
+
+			let sender = ensure_signed(origin)?;
+
+			// Ensure the kitty exists and is called by the kitty owner
+			let mut kitty = Kitties::<T>::get(&kitty_id).ok_or(Error::<T>::NoKitty)?;
+			ensure!(kitty.owner == sender, Error::<T>::NotOwner);
+
+			// Update the kitty price
+			kitty.price = new_price;
+			Kitties::<T>::insert(kitty_id, kitty);
+
+			// Deposit a "PriceSet" event
+			Self::deposit_event(Event::PriceSet { kitty: kitty_id, price: new_price });
+
 			Ok(())
 		}
 	}
@@ -206,7 +235,7 @@ pub mod pallet {
 			if let Some(kitty_index) = from_owned.iter().position(|&id| id == kitty_id) {
 				from_owned.swap_remove(kitty_index);
 			} else {
-				return Err(Error::<T>::NoKitty.into());
+				return Err(Error::<T>::NoKitty.into())
 			}
 
 			// Add kitty to the list of owned kitties.
