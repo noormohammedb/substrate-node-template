@@ -318,7 +318,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
-		NodeAuthorization : pallet_node_authorization::{Pallet, Call, Storage, Event<T>, Config<T>},
+		NodeAuthorization : pallet_node_authorization::{ Pallet, Call, Storage, Event<T>, Config<T> },
 	}
 );
 
