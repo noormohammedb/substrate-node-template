@@ -58,6 +58,8 @@ pallet-template = { version = "4.0.0-dev", default-features = false, path = "../
 # node authorization
 pallet-node-authorization = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
 
+pallet-utility = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.40" }
+
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", optional = true, branch = "polkadot-v0.9.40" }
 
@@ -96,6 +98,7 @@ std = [
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"pallet-node-authorization/std",
+	"pallet-utility/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
