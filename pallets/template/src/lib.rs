@@ -4,6 +4,7 @@
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
+use sp_core::crypto::KeyTypeId;
 
 #[cfg(test)]
 mod mock;
@@ -14,19 +15,69 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
+
+pub mod crypto {
+	use super::KEY_TYPE;
+	use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_runtime::{
+		app_crypto::{app_crypto, sr25519},
+		traits::Verify,
+		MultiSignature, MultiSigner,
+	};
+
+	app_crypto!(sr25519, KEY_TYPE);
+
+	pub struct TestAuthId;
+
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+	use frame_system::{pallet_prelude::*, Call as InternalFrameSystemCall};
+
+	use frame_system::offchain::{
+		AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer,
+	};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	// pub trait Config: frame_system::Config {
+	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn offchain_worker(block_number: T::BlockNumber) {
+			log::info!("Hello from pallet template");
+
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			let results = signer.send_signed_transaction(|_acc| {
+				// log::info!("{}", _acc);
+				Call::do_something { something: 23 }
+			});
+
+			for (acc, res) in &results {
+				match res {
+					Ok(()) => log::info!("[{:?}]: submit transaction success.", acc.id),
+					Err(e) => todo!(),
+				}
+			}
+			// Ok(())
+		}
 	}
 
 	// The pallet's runtime storage items.
