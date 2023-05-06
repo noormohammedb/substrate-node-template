@@ -13,8 +13,8 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		self, AccountIdLookup, BlakeTwo256, Block as BlockT, Extrinsic, IdentifyAccount, NumberFor,
-		One, Verify,
+		self, AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One,
+		Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
@@ -362,7 +362,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		// TemplateModule: pallet_template,
+		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 	}
 );
 

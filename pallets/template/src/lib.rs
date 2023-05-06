@@ -19,10 +19,8 @@ pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
 
 pub mod crypto {
 	use super::KEY_TYPE;
-	use sp_core::sr25519::Signature as Sr25519Signature;
 	use sp_runtime::{
 		app_crypto::{app_crypto, sr25519},
-		traits::Verify,
 		MultiSignature, MultiSigner,
 	};
 
@@ -40,10 +38,12 @@ pub mod crypto {
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
-	use frame_system::{pallet_prelude::*, Call as InternalFrameSystemCall};
+
+	use frame_system::pallet_prelude::*;
 
 	use frame_system::offchain::{
-		AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer,
+		AppCrypto, CreateSignedTransaction, SendSignedTransaction, SendUnsignedTransaction,
+		SignedPayload, Signer, SigningTypes, SubmitTransaction,
 	};
 
 	#[pallet::pallet]
@@ -60,23 +60,96 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(block_number: T::BlockNumber) {
+		fn offchain_worker(_block_number: T::BlockNumber) {
 			log::info!("Hello from pallet template");
 
+			let value = 30u32;
+			let number = 30u64;
+
+			let signer = Signer::<T, T::AuthorityId>::any_account();
+
+			if let Some((_, res)) = signer.send_unsigned_transaction(
+				|acct| Payload { number, public: acct.public.clone() },
+				|payload, signature| Call::for_offchain_worker { payload, signature },
+			) {
+				match res {
+					Ok(()) => log::info!("unsigned tx with signed payload successfully sent."),
+					Err(()) => log::error!("sending unsigned tx with signed payload failed."),
+				}
+			} else {
+				log::error!("No local account available");
+			}
+
+			let call = Call::do_something { something: value };
+
+			let _ = SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+				.map_err(|_| {
+					log::error!("Failed in offchain_unsigned_tx");
+				});
+
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
-
-			let results = signer.send_signed_transaction(|_acc| {
-				// log::info!("{}", _acc);
-				Call::do_something { something: 23 }
-			});
-
+			let results =
+				signer.send_signed_transaction(|_acc| Call::do_something { something: 23 });
 			for (acc, res) in &results {
 				match res {
 					Ok(()) => log::info!("[{:?}]: submit transaction success.", acc.id),
-					Err(e) => todo!(),
+					Err(()) => todo!(),
 				}
 			}
-			// Ok(())
+		}
+	}
+
+	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+	pub struct Payload<Public> {
+		number: u64,
+		public: Public,
+	}
+
+	impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
+		//
+		fn public(&self) -> T::Public {
+			self.public.clone()
+		}
+	}
+
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			let valid_tx = |provide| {
+				ValidTransaction::with_tag_prefix("my-pallet")
+					.priority(32)
+					.and_provides([&provide])
+					.longevity(2)
+					.propagate(true)
+					.build()
+			};
+
+			return match call {
+				Call::for_offchain_worker { ref payload, ref signature } => {
+					if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
+						return InvalidTransaction::BadProof.into();
+					}
+					return valid_tx(b"unsigned_extrinsic_with_signed_payload".to_vec());
+				},
+				_ => InvalidTransaction::Call.into(),
+			};
+
+			#[allow(unreachable_code)] // add this line to disable the warning
+			let valid_tx = |provider| {
+				ValidTransaction::with_tag_prefix("my-pallet")
+					.priority(42)
+					.and_provides([&provider])
+					.longevity(3)
+					.propagate(true)
+					.build()
+			};
+
+			match call {
+				Call::do_something { something: _ } => valid_tx(b"my_unsigned_tx".to_vec()),
+				_ => InvalidTransaction::Call.into(),
+			}
 		}
 	}
 
@@ -131,8 +204,30 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// An example dispatchable that may throw a custom error.
 		#[pallet::call_index(1)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn for_offchain_worker(
+			origin: OriginFor<T>,
+			payload: Payload<T::Public>,
+			signature: <T as SigningTypes>::Signature,
+		) -> DispatchResult {
+			log::debug!("{:?}", payload);
+			log::debug!("{:?}", signature);
+			let who = ensure_signed(origin)?;
+
+			let dummy_data = 42u32;
+
+			// Update storage.
+			<Something<T>>::put(dummy_data);
+
+			// Emit an event.
+			Self::deposit_event(Event::SomethingStored { something: dummy_data, who });
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		/// An example dispatchable that may throw a custom error.
+		#[pallet::call_index(2)]
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1).ref_time())]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
