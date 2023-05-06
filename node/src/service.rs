@@ -11,6 +11,8 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use std::{sync::Arc, time::Duration};
 
+use sp_keystore;
+
 // Our native executor instance.
 pub struct ExecutorDispatch;
 
@@ -59,7 +61,7 @@ pub fn new_partial(
 	ServiceError,
 > {
 	if config.keystore_remote.is_some() {
-		return Err(ServiceError::Other("Remote Keystores are not supported.".into()))
+		return Err(ServiceError::Other("Remote Keystores are not supported.".into()));
 	}
 
 	let telemetry = config
@@ -135,6 +137,15 @@ pub fn new_partial(
 			compatibility_mode: Default::default(),
 		})?;
 
+	if config.offchain_worker.enabled {
+		sp_keystore::SyncCryptoStore::sr25519_generate_new(
+			&*keystore_container.local_keystore().ok_or("local keystore not found")?,
+			node_template_runtime::pallet_template::KEY_TYPE,
+			Some("//Alice"),
+		)
+		.expect("Creating key with account Alice should succeed.");
+	}
+
 	Ok(sc_service::PartialComponents {
 		client,
 		backend,
@@ -170,11 +181,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	if let Some(url) = &config.keystore_remote {
 		match remote_keystore(url) {
 			Ok(k) => keystore_container.set_remote_keystore(k),
-			Err(e) =>
+			Err(e) => {
 				return Err(ServiceError::Other(format!(
 					"Error hooking up remote keystore for {}: {}",
 					url, e
-				))),
+				)))
+			},
 		};
 	}
 	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
