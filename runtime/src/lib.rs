@@ -46,7 +46,9 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
-pub use pallet_template;
+// pub use pallet_template;
+pub use pallet_collectibles;
+pub use pallet_insecure_randomness_collective_flip;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -264,8 +266,17 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// Configure the pallet-template in pallets/template.
-impl pallet_template::Config for Runtime {
+// impl pallet_template::Config for Runtime {
+// 	type RuntimeEvent = RuntimeEvent;
+// }
+
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
+
+impl pallet_collectibles::Config for Runtime {
+	type CollectionRandomness = RandomnessCollectiveFlip;
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MaximumOwned = frame_support::pallet_prelude::ConstU32<100>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -277,6 +288,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
 		Timestamp: pallet_timestamp,
 		Aura: pallet_aura,
 		Grandpa: pallet_grandpa,
@@ -284,7 +296,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		// TemplateModule: pallet_template,
+		Collectible: pallet_collectibles,
 	}
 );
 
