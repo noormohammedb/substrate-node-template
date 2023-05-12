@@ -239,30 +239,11 @@ pub mod pallet {
 			to: T::AccountId,
 			bid_price: BalanceOf<T>,
 		) -> DispatchResult {
-			let mut collectible =
+			let collectible =
 				CollectibleMap::<T>::get(unique_id).ok_or(Error::<T>::NotCollectible)?;
-
-			let from = collectible.owner;
-			ensure!(collectible.price.is_some(), Error::<T>::NotForSale);
-			ensure!(from != to, Error::<T>::TransferToSelf);
-
-			let mut from_owned = OwnerOfCollectibles::<T>::get(&from);
-
-			if let Some(ind) = from_owned.iter().position(|&id| id == unique_id) {
-				from_owned.swap_remove(ind);
-			} else {
-				return Err(Error::<T>::NotCollectible.into())
-			}
-
-			let mut to_owned = OwnerOfCollectibles::<T>::get(&to);
-
-			to_owned
-				.try_push(unique_id)
-				.map_err(|_id| Error::<T>::MaximumCollectiblesOwned)?;
-
-			if let Some(price) = collectible.price {
+			if let (Some(price), from) = (collectible.price, collectible.owner) {
 				ensure!(bid_price >= price, Error::<T>::BidPriceTooLow);
-
+				Self::do_transfer(unique_id, to.clone())?;
 				T::Currency::transfer(
 					&to,
 					&from,
@@ -279,20 +260,6 @@ pub mod pallet {
 			} else {
 				return Err(Error::<T>::NotForSale.into())
 			}
-
-			collectible.owner = to.clone();
-			collectible.price = None;
-
-			CollectibleMap::<T>::insert(&unique_id, collectible);
-			OwnerOfCollectibles::<T>::insert(&to, to_owned);
-			OwnerOfCollectibles::<T>::insert(&from, from_owned);
-
-			Self::deposit_event(Event::TransferSucceeded {
-				from: from.clone(),
-				to: to.clone(),
-				collectible: unique_id,
-			});
-
 			Ok(())
 		}
 	}
