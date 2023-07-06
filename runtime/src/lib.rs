@@ -6,6 +6,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use frame_support::traits::LockIdentifier;
+use frame_system::EnsureRoot;
 use pallet_grandpa::AuthorityId as GrandpaId;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -273,6 +275,57 @@ impl pallet_template::Config for Runtime {
 	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 }
 
+parameter_types! {
+	pub const MaxProposals: u32 = 100;
+	pub const MotionDuration: BlockNumber = 28_800;
+	pub const CouncilMaxMembers: u32 = 100;
+}
+
+impl pallet_collective::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
+	type RuntimeOrigin = RuntimeOrigin;
+	type Proposal = RuntimeCall;
+	type MaxProposals = MaxProposals;
+	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type MaxProposalWeight = ();
+	type MotionDuration = MotionDuration;
+	type SetMembersOrigin = EnsureRoot<AccountId>;
+}
+
+parameter_types! {
+	pub const PhragmenElectionPalletId: LockIdentifier = *b"phrelect";
+	pub const ElectionsPhragmenCandidacyBond: Balance = 1000;
+	pub const ElectionsPhragmenVotingBondBase: Balance = 100 ;
+	pub const ElectionsPhragmenVotingBondFactor: Balance =50 ;
+	pub const ElectionsPhragmenDesiredMembers: u32 = 1;
+	// pub const ElectionsPhragmenDesiredRunnersUp: u32= 2;
+	pub const ElectionsPhragmenTermDuration: BlockNumber = 2 * MINUTES;
+}
+
+impl pallet_elections_phragmen::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type PalletId = PhragmenElectionPalletId;
+	type ChangeMembers = Collective;
+	type InitializeMembers = Collective;
+	type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
+	type CandidacyBond = ElectionsPhragmenCandidacyBond;
+	type VotingBondBase = ElectionsPhragmenVotingBondBase;
+	type VotingBondFactor = ElectionsPhragmenVotingBondFactor;
+	type LoserCandidate = ();
+	type KickedMember = ();
+	type DesiredMembers = ElectionsPhragmenDesiredMembers;
+	// type DesiredMembersUp = ElectionsPhragmenDesiredRunnersUp;
+	type TermDuration = ElectionsPhragmenTermDuration;
+	type WeightInfo = ();
+	type DesiredRunnersUp = ();
+	type MaxCandidates = ();
+	type MaxVoters = ();
+	type MaxVotesPerVoter = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -290,6 +343,8 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		Collective: pallet_collective,
+		ElectionsPhragmen: pallet_elections_phragmen,
 	}
 );
 
