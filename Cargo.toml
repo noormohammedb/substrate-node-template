@@ -1,9 +1,4 @@
 [workspace]
-members = [
-    "node",
-    "pallets/template",
-    "pallets/pallet-collectables",
-    "runtime",
-]
+members = ["node", "pallets/*", "runtime"]
 [profile.release]
 panic = "unwind"

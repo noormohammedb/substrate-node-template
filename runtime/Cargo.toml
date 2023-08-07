@@ -53,7 +53,7 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 
 # Local Dependencies
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
-pallet-collectables = { version = "0.1.0", default-features = false, path = "../pallets/pallet-collectables" }
+pallet-collectables = { version = "0.1.0", default-features = false, git = "https://github.com/noormohammedb/substrate-pallets", branch = "master" }
 
 pallet-insecure-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", optional = true, branch = "polkadot-v1.0.0" }
 

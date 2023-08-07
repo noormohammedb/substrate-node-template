@@ -4733,6 +4733,7 @@ dependencies = [
 [[package]]
 name = "pallet-collectables"
 version = "0.1.0"
+source = "git+https://github.com/noormohammedb/substrate-pallets?branch=master#0b9ac8d308dd6c52fad4c0d3980081e6897cdcaa"
 dependencies = [
  "frame-support",
  "frame-system",
