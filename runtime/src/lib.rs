@@ -290,6 +290,10 @@ impl pallet_hello_world::Config for Runtime {
 	//
 }
 
+impl pallet_event::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime {
@@ -305,6 +309,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		Collectible: pallet_collectables,
 		HelloWorld: pallet_hello_world,
+		EventPallet: pallet_event,
 	}
 );
 

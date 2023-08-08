@@ -4475,6 +4475,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-collectables",
+ "pallet-event",
  "pallet-grandpa",
  "pallet-hello-world",
  "pallet-insecure-randomness-collective-flip",
@@ -4742,6 +4743,16 @@ dependencies = [
 name = "pallet-collectables"
 version = "0.1.0"
 source = "git+https://github.com/noormohammedb/substrate-pallets?branch=master#bb39eacb4085396b24ce22478dd6ca613a207c21"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "pallet-event"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
