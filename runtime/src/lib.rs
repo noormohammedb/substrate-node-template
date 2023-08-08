@@ -286,6 +286,10 @@ impl pallet_collectables::Config for Runtime {
 	type MaxKittiesOwned = frame_support::pallet_prelude::ConstU32<100>;
 }
 
+impl pallet_hello_world::Config for Runtime {
+	//
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime {
@@ -300,6 +304,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 		Collectible: pallet_collectables,
+		HelloWorld: pallet_hello_world,
 	}
 );
 
